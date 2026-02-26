@@ -22,18 +22,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. Security Check (מניעת ה-KeyError) ---
-# בדיקה אם כל המפתחות קיימים לפני שמריצים את המנוע
-if "GEMINI_API_KEY" not in st.secrets or "APP_PASSWORD" not in st.secrets:
-    st.error("⚠️ הגדרת ה-Secrets בשרת חסרה!")
-    st.info("אנא הכנס ל-Settings -> Secrets ב-Streamlit Cloud והדבק שם את הטקסט הבא:")
-    st.code("""
-GEMINI_API_KEY = "הכנס_כאן_את_המפתח_שלך"
-APP_PASSWORD = "Moonshot123"
-    """, language="toml")
-    st.stop()
-
-# --- 3. AI Setup & EXHAUSTIVE Protocol Restoration (The Brain) ---
+# --- 2. AI Setup & EXHAUSTIVE Protocol Restoration (The Brain) ---
 API_KEY = st.secrets["GEMINI_API_KEY"]
 genai.configure(api_key=API_KEY)
 
@@ -87,26 +76,30 @@ def setup_agent():
 
 agent, active_model = setup_agent()
 
-# --- 4. Robust Utilities & Padding Logic ---
+# --- 3. Robust Utilities & Padding Logic ---
 
 def smart_trim(text, limit, min_len=0):
     text = str(text).strip()
     
+    # 1. Trimming if over limit
     if len(text) > limit:
         truncated = text[:limit]
         last_space = truncated.rfind(' ')
         text = truncated[:last_space].strip() if last_space != -1 else truncated
     
+    # 2. Cleanup of hanging words and symbols
     bad_ends = [" for", " with", " and", " the", " our", " get", " on", " a", " your", " free", " of", " in", " to", " is", " or", " by", " &", " +", " -", " secure", " start", " find", " compare"]
     regex_pattern = r'(' + '|'.join(re.escape(word) for word in bad_ends) + r')$'
     while re.search(regex_pattern, text, re.IGNORECASE):
         text = re.sub(regex_pattern, '', text, flags=re.IGNORECASE).strip()
     
+    # 3. Complete Thought Check
     if not text.endswith(('.', '!', '?')):
         last_punct = max(text.rfind('.'), text.rfind('!'), text.rfind('?'))
         if last_punct != -1:
             text = text[:last_punct+1].strip()
 
+    # 4. Multi-Stage Perfectionist Padding (The Length Fix)
     if min_len > 0 and len(text) < min_len:
         long_paddings = [
             " Click here to learn more and see if you qualify for our exclusive offer today!",
@@ -141,12 +134,13 @@ def scrape_site(url):
         return soup.get_text(separator=' ', strip=True)[:1800]
     except: return "High quality direct response offer"
 
-# --- 5. Master Engine ---
+# --- 4. Master Engine ---
 
 def run_master_v1(category, ag_name, url):
     context = scrape_site(url)
     h3_bypass = "Last Updated: {CUSTOMIZER.Month:2026}"
     
+    # הפרומפט המקסימלי לשימוש ה-AI - כאן נמצא כל הפירוט
     prompt = f"""
     SCAN CONTEXT: {context}
     
@@ -200,21 +194,18 @@ def run_master_v1(category, ag_name, url):
     except Exception as e:
         return [], [], f"Error: {e}"
 
-# --- 6. UI & Auth (Secrets Based) ---
+# --- 5. UI & Auth (Moonshot123) ---
 
 st.title("🎯 Lotem's Ad Tool V1.0")
 
 if 'authenticated' not in st.session_state: st.session_state['authenticated'] = False
-
 if not st.session_state['authenticated']:
+    # עדכון הסיסמה ל-Moonshot123
     pwd = st.text_input("Master Password:", type="password")
     if st.button("Unlock"):
-        # כאן התיקון הקריטי - שימוש בסיסמה מתוך ה-Secrets
         if pwd == st.secrets["APP_PASSWORD"]: 
             st.session_state['authenticated'] = True
             st.rerun()
-        else:
-            st.error("סיסמה שגויה")
     st.stop()
 
 t1, t2 = st.tabs(["🚀 Ad Generator", "📦 Bulk Processor"])

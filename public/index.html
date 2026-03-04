@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lotem's Ad Tool V1.0 - Master Executive</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8f9fa; color: #333; }
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+    h1 { font-size: 28px; margin-bottom: 24px; color: #1a1a1a; }
+    h1 span { margin-right: 8px; }
+
+    /* Auth */
+    #auth-screen { max-width: 400px; margin: 120px auto; text-align: center; }
+    #auth-screen h2 { margin-bottom: 20px; font-size: 24px; }
+    #auth-screen input { width: 100%; padding: 12px 16px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; margin-bottom: 12px; }
+    #auth-screen button { width: 100%; padding: 12px; background: #1a73e8; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
+    #auth-screen button:hover { background: #1557b0; }
+    #auth-error { color: #d93025; margin-top: 8px; display: none; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 0; margin-bottom: 24px; border-bottom: 2px solid #e0e0e0; }
+    .tab-btn { padding: 12px 24px; background: none; border: none; font-size: 15px; font-weight: 600; cursor: pointer; color: #666; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
+    .tab-btn.active { color: #1a73e8; border-bottom-color: #1a73e8; }
+    .tab-btn:hover { color: #1a73e8; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Form */
+    .form-grid { display: grid; grid-template-columns: 1fr 1.2fr; gap: 32px; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px; color: #444; }
+    .form-group input { width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
+    .form-group input:focus { outline: none; border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(26,115,232,0.15); }
+
+    .btn-primary { padding: 12px 28px; background: #1a73e8; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+    .btn-primary:hover { background: #1557b0; }
+    .btn-primary:disabled { background: #93c5fd; cursor: not-allowed; }
+
+    .btn-download { padding: 10px 20px; background: #34a853; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 16px; display: inline-flex; align-items: center; gap: 6px; }
+    .btn-download:hover { background: #2d8f47; }
+
+    /* Ad Preview */
+    .ad-preview { border-left: 6px solid #1a73e8; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+    .preview-headline { color: #1a0dab; font-size: 18px; font-weight: bold; margin-bottom: 4px; }
+    .preview-description { color: #4d5156; font-size: 14px; margin-top: 5px; }
+    .preview-meta { font-size: 11px; color: gray; margin-top: 10px; }
+
+    .all-headlines { margin-top: 16px; }
+    .all-headlines h4 { margin-bottom: 8px; color: #444; }
+    .hl-item { padding: 4px 0; font-size: 13px; color: #555; border-bottom: 1px solid #f0f0f0; }
+    .hl-item span.hl-label { font-weight: 600; color: #1a73e8; min-width: 40px; display: inline-block; }
+    .hl-item span.hl-len { color: #999; font-size: 11px; margin-left: 6px; }
+
+    /* Spinner */
+    .spinner { display: inline-block; width: 18px; height: 18px; border: 3px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Bulk */
+    .bulk-section { max-width: 700px; }
+    .file-input-wrap { margin: 16px 0; }
+    .file-input-wrap input[type="file"] { font-size: 14px; }
+    .progress-bar { width: 100%; height: 8px; background: #e0e0e0; border-radius: 4px; overflow: hidden; margin: 12px 0; }
+    .progress-fill { height: 100%; background: #1a73e8; transition: width 0.3s; width: 0%; }
+    .bulk-status { font-size: 14px; color: #666; margin: 8px 0; }
+    .divider { height: 1px; background: #e0e0e0; margin: 20px 0; }
+
+    /* Error */
+    .error-msg { background: #fce8e6; color: #d93025; padding: 12px 16px; border-radius: 8px; margin-top: 12px; font-size: 14px; display: none; }
+
+    #app { display: none; }
+  </style>
+</head>
+<body>
+
+<!-- Auth Screen -->
+<div id="auth-screen">
+  <h2>Lotem's Ad Tool V1.0</h2>
+  <input type="password" id="password-input" placeholder="Master Password" onkeydown="if(event.key==='Enter')unlock()">
+  <button onclick="unlock()">Unlock</button>
+  <div id="auth-error">Invalid password. Try again.</div>
+</div>
+
+<!-- Main App -->
+<div id="app" class="container">
+  <h1><span>&#127919;</span> Lotem's Ad Tool V1.0</h1>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('generator')">&#128640; Ad Generator</button>
+    <button class="tab-btn" onclick="switchTab('bulk')">&#128230; Bulk Processor</button>
+  </div>
+
+  <!-- Tab 1: Ad Generator -->
+  <div id="tab-generator" class="tab-content active">
+    <div class="form-grid">
+      <div>
+        <div class="form-group">
+          <label>Campaign Name</label>
+          <input type="text" id="campaign" value="Search_Campaign_2026">
+        </div>
+        <div class="form-group">
+          <label>Final URL</label>
+          <input type="text" id="url" value="https://example.com">
+        </div>
+        <div class="form-group">
+          <label>Category</label>
+          <input type="text" id="category" value="Semaglutide">
+        </div>
+        <div class="form-group">
+          <label>Ad Group</label>
+          <input type="text" id="adgroup" value="Semaglutide">
+        </div>
+        <button class="btn-primary" id="generate-btn" onclick="generateAd()">
+          &#128640; Execute Protocol
+        </button>
+        <div class="error-msg" id="gen-error"></div>
+      </div>
+      <div id="result-panel"></div>
+    </div>
+  </div>
+
+  <!-- Tab 2: Bulk Processor -->
+  <div id="tab-bulk" class="tab-content">
+    <div class="bulk-section">
+      <h3>&#128230; Bulk Agent Processor</h3>
+      <p style="margin: 12px 0; color: #666; font-size: 14px;">Upload a CSV/Excel file with columns: Campaign, Ad Group, Category, URL</p>
+      <button class="btn-download" onclick="downloadTemplate()">&#128229; Download Template</button>
+      <div class="divider"></div>
+      <div class="file-input-wrap">
+        <label style="font-weight: 600; display: block; margin-bottom: 8px;">Upload filled CSV</label>
+        <input type="file" id="bulk-file" accept=".csv,.xlsx">
+      </div>
+      <button class="btn-primary" id="bulk-btn" onclick="processBulk()">
+        &#128230; Process All Rows
+      </button>
+      <div class="progress-bar" id="bulk-progress-bar" style="display:none;">
+        <div class="progress-fill" id="bulk-progress-fill"></div>
+      </div>
+      <div class="bulk-status" id="bulk-status"></div>
+      <div id="bulk-download-area"></div>
+      <div class="error-msg" id="bulk-error"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let sessionPassword = '';
+  let lastResult = null;
+
+  // --- Auth ---
+  function unlock() {
+    const pwd = document.getElementById('password-input').value;
+    sessionPassword = pwd;
+    // Validate password via a test call
+    fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pwd, category: '', agName: '', url: '' })
+    }).then(r => {
+      if (r.status === 401) {
+        document.getElementById('auth-error').style.display = 'block';
+      } else {
+        // Password accepted (will get other errors since inputs are empty, that's fine)
+        document.getElementById('auth-screen').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+      }
+    }).catch(() => {
+      // If network error, let them in anyway (password validated server-side on each call)
+      document.getElementById('auth-screen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+    });
+  }
+
+  // --- Tabs ---
+  function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    event.target.classList.add('active');
+  }
+
+  // --- Generate ---
+  async function generateAd() {
+    const btn = document.getElementById('generate-btn');
+    const errEl = document.getElementById('gen-error');
+    errEl.style.display = 'none';
+
+    const campaign = document.getElementById('campaign').value;
+    const url = document.getElementById('url').value;
+    const category = document.getElementById('category').value;
+    const agName = document.getElementById('adgroup').value;
+
+    if (!url || !category || !agName) {
+      errEl.textContent = 'Please fill in all fields.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Agent is running...';
+
+    try {
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: sessionPassword, category, agName, url })
+      });
+
+      if (res.status === 401) {
+        errEl.textContent = 'Authentication failed. Please reload and re-enter password.';
+        errEl.style.display = 'block';
+        return;
+      }
+
+      const data = await res.json();
+      if (data.error) {
+        errEl.textContent = 'Error: ' + data.error;
+        errEl.style.display = 'block';
+        return;
+      }
+
+      lastResult = { headlines: data.headlines, descriptions: data.descriptions, campaign, agName };
+      renderResult(data.headlines, data.descriptions);
+    } catch (e) {
+      errEl.textContent = 'Network error: ' + e.message;
+      errEl.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '&#128640; Execute Protocol';
+    }
+  }
+
+  function renderResult(headlines, descriptions) {
+    const now = new Date();
+    const monthYear = now.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+    const displayH3 = headlines[2] ? headlines[2].replace('{CUSTOMIZER.Month:2026}', monthYear) : '';
+
+    let html = `
+      <div class="ad-preview">
+        <div class="preview-headline">HL1: ${esc(headlines[0] || '')}</div>
+        <div class="preview-headline">HL2: ${esc(headlines[1] || '')}</div>
+        <div class="preview-description"><b>D1:</b> ${esc(descriptions[0] || '')}</div>
+        <div class="preview-description"><b>D2:</b> ${esc(descriptions[1] || '')}</div>
+        <div class="preview-meta">D3: ${esc(descriptions[2] || '')}</div>
+        <div class="preview-meta">D4: ${esc(descriptions[3] || '')}</div>
+      </div>
+      <div class="all-headlines">
+        <h4>All Headlines</h4>
+    `;
+    headlines.forEach((h, i) => {
+      const display = i === 2 ? h.replace('{CUSTOMIZER.Month:2026}', monthYear) : h;
+      html += `<div class="hl-item"><span class="hl-label">HL${i+1}:</span> ${esc(display)} <span class="hl-len">(${h.length})</span></div>`;
+    });
+    html += `</div>
+      <button class="btn-download" onclick="downloadSingleCSV()">&#128229; Download RSA CSV</button>`;
+
+    document.getElementById('result-panel').innerHTML = html;
+  }
+
+  function esc(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  // --- CSV Download ---
+  function downloadSingleCSV() {
+    if (!lastResult) return;
+    const { headlines, descriptions, campaign, agName } = lastResult;
+    const headers = ['Campaign', 'Ad Group'];
+    for (let i = 1; i <= 15; i++) headers.push('Headline ' + i);
+    for (let i = 1; i <= 4; i++) headers.push('Description ' + i);
+
+    const row = [campaign, agName, ...headlines, ...descriptions];
+    const csv = headers.map(csvEsc).join(',') + '\n' + row.map(csvEsc).join(',');
+    downloadFile(csv, agName + '_V1.csv', 'text/csv');
+  }
+
+  function csvEsc(val) {
+    const s = String(val || '');
+    if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+      return '"' + s.replace(/"/g, '""') + '"';
+    }
+    return s;
+  }
+
+  function downloadFile(content, filename, type) {
+    const blob = new Blob([content], { type });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  // --- Template ---
+  function downloadTemplate() {
+    const csv = 'Campaign,Ad Group,Category,URL\nCampaign_Name,Ad_Group,Category,https://example.com';
+    downloadFile(csv, 'Template_V1.csv', 'text/csv');
+  }
+
+  // --- Bulk Processing ---
+  async function processBulk() {
+    const fileInput = document.getElementById('bulk-file');
+    const errEl = document.getElementById('bulk-error');
+    const statusEl = document.getElementById('bulk-status');
+    const progressBar = document.getElementById('bulk-progress-bar');
+    const progressFill = document.getElementById('bulk-progress-fill');
+    const downloadArea = document.getElementById('bulk-download-area');
+    const btn = document.getElementById('bulk-btn');
+
+    errEl.style.display = 'none';
+    downloadArea.innerHTML = '';
+    statusEl.textContent = '';
+
+    if (!fileInput.files.length) {
+      errEl.textContent = 'Please upload a CSV file first.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    const file = fileInput.files[0];
+    const text = await file.text();
+    const rows = parseCSV(text);
+
+    if (rows.length < 2) {
+      errEl.textContent = 'CSV must have a header row and at least one data row.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    const header = rows[0].map(h => h.trim().toLowerCase());
+    const campaignIdx = header.indexOf('campaign');
+    const agIdx = header.indexOf('ad group');
+    const catIdx = header.indexOf('category');
+    const urlIdx = header.indexOf('url');
+
+    if (agIdx === -1 || catIdx === -1 || urlIdx === -1) {
+      errEl.textContent = 'CSV must have columns: Ad Group, Category, URL';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Processing...';
+    progressBar.style.display = 'block';
+
+    const dataRows = rows.slice(1).filter(r => r[urlIdx] && r[urlIdx].trim());
+    const results = [];
+
+    for (let i = 0; i < dataRows.length; i++) {
+      const r = dataRows[i];
+      statusEl.textContent = `Processing row ${i + 1} of ${dataRows.length}...`;
+      progressFill.style.width = ((i + 1) / dataRows.length * 100) + '%';
+
+      try {
+        const res = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            password: sessionPassword,
+            category: r[catIdx].trim(),
+            agName: r[agIdx].trim(),
+            url: r[urlIdx].trim()
+          })
+        });
+        const data = await res.json();
+        if (data.headlines) {
+          results.push({
+            campaign: campaignIdx !== -1 ? r[campaignIdx] : 'Bulk',
+            agName: r[agIdx].trim(),
+            headlines: data.headlines,
+            descriptions: data.descriptions
+          });
+        }
+      } catch (e) {
+        console.error('Row error:', e);
+      }
+
+      // Rate limit delay
+      if (i < dataRows.length - 1) await new Promise(r => setTimeout(r, 1500));
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '&#128230; Process All Rows';
+    statusEl.textContent = `Done! Processed ${results.length} of ${dataRows.length} rows.`;
+
+    if (results.length > 0) {
+      const csvHeaders = ['Campaign', 'Ad Group'];
+      for (let i = 1; i <= 15; i++) csvHeaders.push('Headline ' + i);
+      for (let i = 1; i <= 4; i++) csvHeaders.push('Description ' + i);
+
+      let csv = csvHeaders.map(csvEsc).join(',') + '\n';
+      results.forEach(r => {
+        const row = [r.campaign, r.agName, ...r.headlines, ...r.descriptions];
+        csv += row.map(csvEsc).join(',') + '\n';
+      });
+
+      downloadArea.innerHTML = '<button class="btn-download" onclick="downloadBulkResult()">&#128229; Download Final Bulk CSV</button>';
+      window._bulkCSV = csv;
+    }
+  }
+
+  function downloadBulkResult() {
+    if (window._bulkCSV) {
+      downloadFile(window._bulkCSV, 'Lotem_Bulk_V1.csv', 'text/csv');
+    }
+  }
+
+  // --- Simple CSV Parser ---
+  function parseCSV(text) {
+    const rows = [];
+    let current = [];
+    let field = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (inQuotes) {
+        if (c === '"' && text[i + 1] === '"') { field += '"'; i++; }
+        else if (c === '"') { inQuotes = false; }
+        else { field += c; }
+      } else {
+        if (c === '"') { inQuotes = true; }
+        else if (c === ',') { current.push(field); field = ''; }
+        else if (c === '\n' || (c === '\r' && text[i + 1] === '\n')) {
+          current.push(field); field = '';
+          if (current.some(f => f.trim())) rows.push(current);
+          current = [];
+          if (c === '\r') i++;
+        } else { field += c; }
+      }
+    }
+    if (field || current.length) { current.push(field); if (current.some(f => f.trim())) rows.push(current); }
+    return rows;
+  }
+</script>
+</body>
+</html>

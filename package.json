@@ -1,0 +1,17 @@
+{
+  "name": "lotem-ad-tool",
+  "version": "1.0.0",
+  "description": "Lotem's PPC Ad Tool - Netlify deployment",
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "node-fetch": "^2.7.0",
+    "cheerio": "^1.0.0"
+  },
+  "devDependencies": {
+    "netlify-cli": "^17.0.0"
+  },
+  "scripts": {
+    "dev": "netlify dev",
+    "build": "echo 'Static site - no build needed'"
+  }
+}
